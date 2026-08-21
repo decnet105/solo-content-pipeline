@@ -1,0 +1,73 @@
+{
+  "name": "ocean-facts",
+  "out": "output/ocean-facts.mp4",
+
+  "brand_intro": true,
+  "intro": {
+    "title": "3 things\nyou didn't know\nabout the ocean",
+    "subtitle": "a 30-second dive",
+    "dur": 2.6
+  },
+
+  "music": {
+    "prompt": "calm cinematic ambient underwater, soft felt piano and slowly swelling strings, gentle 80 BPM, spacious and hopeful, no drums, instrumental",
+    "start": 0.0,
+    "instrumental": true
+  },
+
+  "voice": { "voice_id": "audiobook_male_2", "speed": 1.0 },
+
+  "shots": [
+    {
+      "key": "deep",
+      "primary": "The deepest point is 11 km down.",
+      "say": "The ocean's deepest point plunges almost eleven kilometers, deeper than the tallest mountain is high.",
+      "image": {
+        "gen": "photorealistic deep ocean trench, shafts of blue light fading into darkness, tiny particles drifting, wide cinematic underwater shot, no text, no watermark"
+      },
+      "motion": "in",
+      "mode": "cover",
+      "emotion": "neutral"
+    },
+    {
+      "key": "oxygen",
+      "primary": "Half your oxygen comes from the sea.",
+      "say": "Here's the wild part. Every second breath you take comes from the ocean, made by microscopic drifting plankton.",
+      "image": {
+        "gen": "photorealistic sunlit ocean surface seen from just below the waterline, golden light rays, floating plankton particles, serene, cinematic, no text, no watermark"
+      },
+      "motion": "out",
+      "mode": "cover",
+      "emotion": "happy"
+    },
+    {
+      "key": "unexplored",
+      "primary": "We've mapped less than a quarter of it.",
+      "say": "And most of it is still a mystery. We have mapped more of the moon than our own sea floor.",
+      "image": {
+        "gen": "photorealistic sonar-style map of a dark unexplored ocean floor, faint glowing topographic contour lines, moody deep blue, cinematic, no text, no watermark"
+      },
+      "motion": "panL",
+      "mode": "cover",
+      "emotion": "neutral"
+    }
+  ],
+
+  "brand_outro": true,
+  "outro": {
+    "title": "Follow for more",
+    "subtitle": "one small fact a day",
+    "cta": "Save this for later",
+    "dur": 2.4
+  },
+
+  "publish": {
+    "title": [
+      "3 ocean facts that sound fake (but aren't)",
+      "The ocean is weirder than you think"
+    ],
+    "hashtags": "#Shorts #ocean #science #didyouknow",
+    "category": "Education",
+    "language": "English"
+  }
+}

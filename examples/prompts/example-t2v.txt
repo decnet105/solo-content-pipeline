@@ -1,0 +1,26 @@
+STYLE: cinematic live-action, photoreal, shallow depth of field, natural soft morning light, subtle film grain, muted teal-and-amber color grade, gentle anamorphic lens flare. No plastic CG look, no over-smoothing.
+DURATION: 5s
+ASPECT: 9:16 (vertical)
+
+SCENE: A lone lighthouse on a rocky headland at dawn. Low mist drifts over a calm sea, a few gulls far in the distance, the first warm sun breaking the horizon behind thin clouds.
+SUBJECT: A weathered white-and-red striped lighthouse, its lamp still slowly rotating, a thin warm beam sweeping through the mist. Keep its proportions, stripes, and position strictly consistent across the whole clip.
+AUDIO: none — the model's audio is disabled; music and voice are added in post.
+
+SHOT (timecoded, one continuous camera move, no cuts):
+00:00-00:02  Low aerial push-in from over the sea toward the headland, camera skimming just above the water, gentle handheld float.
+00:02-00:04  Continue the push as the sun crests the horizon; the rotating beam sweeps once across frame, the mist glowing warm.
+00:04-00:05  Ease into a slow rise, revealing the full headland with the lighthouse silhouetted against the brightening sky.
+
+ACTION & CONTINUITY (hard constraints):
+- Single continuous camera move; no hard cuts, no jump cuts, no teleporting.
+- Consistent dawn lighting direction coming from the horizon throughout.
+- The sea stays calm; waves move with physically correct, gentle motion.
+- Lighthouse geometry, color, and scale are held identical from first to last frame.
+
+NEGATIVE (layered):
+- text, captions, subtitles, watermarks, logos, UI overlays, on-screen numbers
+- extra lighthouses, duplicated horizons, warping or morphing geometry, melting structures
+- people, boats, vehicles, or close-up animals
+- flicker, strobing, harsh oversaturation, blown highlights, HDR halos
+- fast cuts, jump cuts, camera shake, jitter, stutter, frame stalls
+- plastic CG skin, cartoon look, painterly filter, heavy denoise smearing

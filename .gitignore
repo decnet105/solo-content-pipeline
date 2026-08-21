@@ -1,0 +1,25 @@
+# Secrets — never commit
+.env
+*.key
+**/keys/
+.config/
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Generated media & work dirs
+tmp/
+output/
+*.mp4
+*.mov
+*.mp3
+*.wav
+
+# OS
+.DS_Store
