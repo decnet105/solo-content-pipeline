@@ -36,7 +36,7 @@ You do **not** need to know Python, JavaScript, or ffmpeg. You need a Mac, a few
 
 ```bash
 # 1. Clone
-git clone <this-repo-url> solo-content-pipeline
+git clone https://github.com/decnet105/solo-content-pipeline.git
 cd solo-content-pipeline
 
 # 2. Install tools (once)

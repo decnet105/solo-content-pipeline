@@ -53,10 +53,10 @@ Each should print a version number. If any says "command not found," see [Troubl
 
 ## Step 2 · Get the project onto your Mac
 
-If you were handed a link to this repo, clone it (replace the URL with the real one):
+Clone the repo:
 
 ```bash
-git clone <this-repo-url> solo-content-pipeline
+git clone https://github.com/decnet105/solo-content-pipeline.git
 cd solo-content-pipeline
 ```
 
