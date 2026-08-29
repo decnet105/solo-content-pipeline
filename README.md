@@ -14,7 +14,7 @@ I'm a solo builder, not a professional programmer. I described what I wanted to 
 
 - **One spec, one video.** Write (or edit) a `spec.json` describing your shots, narration, and music. Run one command. Get a finished `.mp4`.
 - **AI assets, on demand.** The pipeline calls out to AI providers for images, short video clips, background music, and a voiceover — only for the pieces you don't already have.
-- **Reusable "skills."** Small instruction files that teach a coding agent _your_ standards — how to write a post, how to reply in a forum without getting flagged, how to build a video — so it never re-learns them from scratch.
+- **Reusable "skills."** Small instruction files that teach a coding agent _your_ standards — how to write a post, preserve a recurring character, study a reference, build a video and review paid AI motion — so it does not re-learn them from scratch.
 
 ## Who this is for
 
@@ -67,6 +67,9 @@ When it finishes you'll have a finished vertical short in `output/`. Open it, se
 - `examples/example-spec.json` — a complete, runnable spec you can copy and edit.
 - `examples/prompts/example-t2v.txt` — a director-style prompt for a text-to-video shot.
 - `skills/video-pipeline/SKILL.md` — how to drive the video pipeline.
+- `skills/video-pipeline/references/ai-motion-production.md` — the fail-closed contract for real generated motion, paid-task recovery, reference roles and exact-output review.
+- `skills/character-continuity/SKILL.md` — identity/look, expression, hands, props and recurring-character continuity.
+- `skills/reference-video-study/SKILL.md` — evidence-first reference study and single-variable experiments.
 - `skills/social-post/SKILL.md` — how to write a post that doesn't read as AI.
 - `skills/social-reply/SKILL.md` — how to reply in a community without getting flagged.
 - `docs/` — the tutorials below.
@@ -77,6 +80,7 @@ When it finishes you'll have a finished vertical short in `output/`. Open it, se
 - [02 · The video pipeline](docs/02-video-pipeline.md) — the spec format, the generate-or-reuse trick, cinematic prompts, and how to keep costs low.
 - [03 · Social content](docs/03-social-content.md) — the two writing "skills" and the reality of posting in communities.
 - [04 · How this was built](docs/04-how-this-was-built.md) — the meta story: how a non-coder built all of this by directing an agent.
+- [05 · Production quality loop](docs/05-production-quality-loop.md) — the difference between moving a still and real animation, plus reference roles, task recovery, motion/character gates and output QC.
 
 ## How it was built (teaser)
 
@@ -96,5 +100,5 @@ MIT — see [LICENSE](LICENSE). Use it, fork it, ship your own.
 
 - 这是一套「用 JSON 造竖屏短视频」的开源起步套件：写一个 spec 文件，跑一条命令，AI 出图/出片/配乐/配音，自动拼成成片。
 - 我不是程序员——整套脚本都是我用大白话「指挥」AI 编程助手写出来的，看结果、说哪里不对、反复迭代。
-- 还附带几个可复用的「技能」文件，教 AI 按你的标准写社媒帖子和回复，不带 AI 腔。
+- 还附带可复用的「技能」文件，覆盖社媒写作、角色连续性、参考片取证，以及真正 AI 动画的费用、任务恢复和成片人审。
 - 核心不是会写代码，而是**把想要的效果讲清楚 + 有审美 + 肯迭代**。完整故事见 [docs/04](docs/04-how-this-was-built.md)。

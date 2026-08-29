@@ -150,13 +150,16 @@ Two ways to fill a shot with a still:
 - `gen` — the pipeline generates the still from this prompt the first time and caches it. This is what all three demo shots use.
 - `src` — point at an image file you already have (a photo, a screenshot, or a number card — see below). It's used as-is and never generated.
 
-To make a still feel alive, set the shot's `motion` field:
+To give a still a presentation move, set the shot's `motion` field:
 
 - `"in"` / `"out"` — a slow push in or pull out.
 - `"panL"` — a slow drift across the frame.
 - `"punchin"` — a quick punch in that settles.
 
-This "Ken Burns" motion is done entirely by ffmpeg — it costs nothing extra and makes a static image look like real footage. **Most of your shots should be stills with motion.**
+This "Ken Burns" treatment is done entirely by ffmpeg and costs nothing extra. It remains
+a moving still, not character animation. It is a good default for fact cards, documents,
+landscapes, timing drafts and other shots whose meaning does not depend on body or facial
+performance.
 
 ### 2. `clip` / `seedance` — real motion video (expensive, save for heroes)
 
@@ -171,11 +174,18 @@ For a shot that genuinely moves, use one of these instead of `image`:
 ```
 
 - `clip` — the path to a motion `.mp4` you already have. The pipeline drops it straight in. An optional `clip_ss` on the shot sets a start offset (seconds) into that clip.
-- `seedance` — generate a few seconds of motion from the shot's still via an image-to-video model. It animates the still produced by that same shot's `image` (so give the shot an `image` too, as the first frame). The `prompt` is a director-style motion description (see [Director-style prompts](#director-style-prompts)).
+- `seedance` — generate a few seconds of motion from the shot's still via an image-to-video model. It animates the still produced by that same shot's `image` (so give the shot an `image` too, as the first frame). The `prompt` is a director-style motion description (see [Director-style prompts](#director-style-prompts)). A returned clip is a review candidate, not automatic proof of natural motion or continuity.
 
 Generated motion is the most impressive and the most expensive part — often billed per second of output. Rule of thumb: **one, maybe two motion shots per video** — a hero opener or a payoff moment. Everything else is stills.
 
-> A practical caveat with today's image-to-video models: they distort clear, close-up human faces into something uncanny. That's what `face_free` guards. Set `"face_free": false` when the shot has a recognizable face — the pipeline then **skips the motion generation and falls back to a Ken Burns still** automatically, so you never ship a warped face. Reserve `"face_free": true` (real motion) for landscapes, objects, textures, and atmospheric shots.
+> The current starter uses `face_free` as a conservative routing switch. With
+> `"face_free": false`, it skips generation and falls back to a Ken Burns still. That
+> fallback avoids spending on a risky face, but it does not turn the still into real
+> acting. For character-led animation, use approved identity/motion references and the
+> production loop in [docs/05](05-production-quality-loop.md), then review the whole clip.
+> The included `seedance` path currently sends one start image for a fixed four-second
+> request and has no multi-reference or durable task ledger, so it is not the executor for
+> that character-production contract.
 
 ### 3. Number cards — a crisp on-screen number (free, and important)
 
@@ -220,6 +230,12 @@ This is the single most important behavior to understand. For every asset a shot
 So your **first** run of a spec generates everything and costs money. Every run after that is nearly instant and nearly free, because the assets are cached on disk.
 
 To **change one shot**, edit that shot and delete its cached file in `tmp/videogen/spec-<name>/` (for example `img_<key>.png` or `say_<key>.mp3`), or give the shot a new `key`. Next run regenerates only that one asset; everything else is reused. Delete the whole `tmp/videogen/spec-<name>/` folder only when you want a fresh start. This is what makes iterating feel fast and cheap instead of scary and expensive.
+
+This is a file-existence cache, not strict request idempotency: changing prompt, voice or
+model text does not necessarily invalidate a file whose shot key stayed the same. For a
+paid video task, separately save an immutable input digest, request ID, provider task ID,
+cost and downloaded-file hash. If submission status is unclear, reconcile that original
+task rather than submitting it again.
 
 ---
 
@@ -320,7 +336,10 @@ Everything here is optional; sensible defaults are derived from your `intro` tit
 
 ## Director-style prompts (for `seedance` shots)
 
-Image-to-video models reward prompts written like a **director's shot description**, not a keyword salad. The example in `examples/prompts/example-t2v.txt` follows this structure — describe, in order:
+Image-to-video models reward concrete, filmable instructions over a keyword salad. Compile
+one continuous photographic shot per provider request; keep cuts, montage, transitions,
+captions and final musical timing in the edit spec. The example in
+`examples/prompts/example-t2v.txt` follows this basic structure — describe, in order:
 
 1. **Subject** — what's in frame. ("A weathered lighthouse on a rocky headland.")
 2. **Action / motion** — what moves, and how. ("Slow push-in; low mist drifts over a calm sea.")
@@ -329,7 +348,7 @@ Image-to-video models reward prompts written like a **director's shot descriptio
 5. **Lighting** — source, direction, quality. ("First warm dawn light breaking the horizon.")
 6. **Mood** — the emotional tone in a word or two. ("Quiet, hopeful, cinematic.")
 
-Concrete, physical, filmable language beats adjectives. "Slow push-in, dawn light raking across the wet rock" gives the model something to do; "beautiful amazing epic 4K" does not. Put this text in the shot's `seedance.prompt`.
+Concrete, physical, filmable language beats adjectives. "Slow push-in, dawn light raking across the wet rock" gives the model something to do; "beautiful amazing epic 4K" does not. Put this text in the shot's `seedance.prompt`. More detail or repeated instructions still do not prove provider obedience; measure and review the returned file.
 
 A good habit: don't hand-write these. Ask a strong "director" model (your coding agent, or a capable text model) to _write the prompt for you_ from a one-line brief — "write me a cinematic image-to-video prompt for a quiet dawn lighthouse reveal." Taste in picking the best of a few options beats trying to author the perfect prompt yourself. More on that in [docs/04](04-how-this-was-built.md).
 
@@ -339,14 +358,18 @@ A good habit: don't hand-write these. Ask a strong "director" model (your coding
 
 Generated motion video is where budgets die. Keep the bill small:
 
-- **Default to stills + Ken Burns.** A well-lit generated still with a slow push looks cinematic and costs a fraction of a video clip. Aim for most of your shots to be `image` stills with a `motion`.
+- **Default to stills + Ken Burns for card/fact formats.** A strong still with a slow push costs a fraction of a video clip. Do not use it as a substitute when the story depends on character acting, contact or real movement.
 - **Reserve `seedance` (or a supplied `clip`) for one or two hero moments** per video — the opener or the payoff. Not every shot needs to move on its own.
 - **Number cards are free.** Any figure, date, or label should be a number card referenced via `image.src`, never an AI-rendered image.
-- **Lean on the cache.** Once an asset looks right, never delete it. Re-runs are then almost free. Only regenerate the specific shot you're changing.
+- **Lean on the cache deliberately.** Once an asset looks right, preserve it and its input record. When changing a shot, invalidate only its cache key/file and never assume prompt edits were detected automatically.
 - **Keep motion shots short.** Since video is usually billed per second, a 3–4 second hero clip costs half of an 8-second one. Cut to a still before the motion overstays.
 - **Prototype with stills, then add the hero.** Get your timing, narration, and subtitles right with cheap stills first; add the one expensive `seedance` shot last, once the structure is locked.
 
 Do the math before a big batch: roughly, `(number of motion shots) × (seconds each) × (per-second price)` is the part that matters; stills, cards, one music track, and short voice lines are rounding errors by comparison.
+
+Set a maximum request count and cost before submitting. A timeout, ambiguous response or
+provider URL is not permission to pay again. Provider completion means the file is ready
+to inspect; only a normal-speed review of the exact downloaded hash can accept it.
 
 ---
 
@@ -354,4 +377,5 @@ Do the math before a big batch: roughly, `(number of motion shots) × (seconds e
 
 - Want to write posts and replies to go with your videos? See [docs/03 · Social content](03-social-content.md).
 - Curious how a non-programmer built all of this? See [docs/04 · How this was built](04-how-this-was-built.md).
+- Need recurring characters, real generated motion, reference analysis, task recovery and exact-output QC? See [docs/05 · Production quality loop](05-production-quality-loop.md).
 - The `skills/video-pipeline/SKILL.md` file is the condensed version of everything above, written so a coding agent can drive the pipeline for you on request.

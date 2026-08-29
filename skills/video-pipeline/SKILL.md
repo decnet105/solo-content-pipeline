@@ -2,14 +2,13 @@
 name: video-pipeline
 description: >
   Spec-JSON driven vertical short-video pipeline for a solo creator. One command per
-  spec renders an end-to-end clip by orchestrating four AI APIs (image / image-to-video /
+  spec assembles a clip by orchestrating four AI APIs (image / image-to-video /
   music / text-to-speech) and stitching everything with PIL + ffmpeg. Use this when you
   want to produce a narrated short, add voiceover, render precise number/info cards, swap
-  topics by swapping a spec, or extend the pipeline. Core ideas: generate-missing /
-  reuse-existing asset resolver, per-shot narration where each shot's line is its own
-  subtitle and its own voice clip on the timeline, PIL-rendered numbers (never let the
-  image model draw digits or text), same-frame bilingual subtitles, and BT.709 for
-  playback safety.
+  topics by swapping a spec, plan a bounded native-motion shot, or extend the pipeline.
+  Distinguish inexpensive still-card assembly from real generated character motion; use
+  explicit reference roles, paid-request recovery, exact-output review, per-shot
+  narration, locally rendered exact text, same-frame bilingual subtitles, and BT.709.
 ---
 
 # Spec-JSON short-video pipeline
@@ -18,6 +17,10 @@ A reproducible way for one person to produce narrated vertical shorts. Everythin
 needs lives in a single JSON spec; a build script turns that spec into a finished MP4 by
 calling AI APIs only for the assets that are missing, then assembling with PIL + ffmpeg.
 
+The one-command guarantee covers the starter's stills, cards, supplied clips, narration
+and final assembly. It does not guarantee production-grade recurring-character animation;
+the built-in generated-video experiment has the explicit limits below.
+
 ## One command per spec
 
 ```
@@ -25,25 +28,30 @@ python3 scripts/make_short.py examples/example-spec.json
 ```
 
 Swapping the spec swaps the topic and produces a new clip. **Missing assets are generated
-by the appropriate API; assets that already exist on disk are reused at $0.** Re-running a
-spec is therefore cheap and idempotent — only new or changed shots cost money.
+by the appropriate API; assets that already exist on disk are reused at $0.** Re-running
+an unchanged cache key is therefore cheap. This file-existence cache is not cryptographic
+idempotency and does not by itself notice every prompt or model change.
 
 ## The generate-missing / reuse-existing resolver
 
 This is the heart of the pipeline. For every asset a shot references (background image,
 motion clip, music bed, voice line), the builder:
 
-1. Resolves the target path the asset should live at (deterministic, derived from the spec
-   — e.g. a hash of the prompt + shot id).
+1. Resolves the target path the asset should live at (the starter currently derives it
+   mainly from the spec name and shot key).
 2. If a file already exists there, reuse it (no API call, $0).
 3. Otherwise call the API, write the result to that path, and cache it.
 
 Consequences worth designing around:
 
-- Change one shot's prompt and only that shot regenerates; the rest are free.
+- To change one shot, change its key or deliberately remove only that shot's cached file;
+  editing prompt text alone may not invalidate the current starter cache.
 - Keep prompt text in versioned files so a re-run is byte-stable and diffable.
 - Because image models are non-deterministic, cache aggressively — never regenerate an
   approved asset just because the pipeline ran again.
+- For a paid provider task, separately save the immutable input digest, request ID,
+  provider task ID, estimated/actual cost and returned-file hash. If submission status is
+  ambiguous, reconcile that task instead of submitting the same request again.
 
 ## Spec shape (generalize to your own schema)
 
@@ -73,6 +81,26 @@ Wrap each provider behind a tiny caller so the builder only knows "give me an as
 Keep API keys out of the repo and out of logs (load from a config path or env; never
 print them). Log every paid call somewhere (a simple ledger CSV) — these APIs bill per
 call and per second and it adds up fast.
+
+## Choose the right motion route
+
+- A still plus zoom, pan or parallax is an inexpensive **presentation treatment**. It is
+  useful for cards, documents, landscapes, timing drafts and design review, but it is not
+  evidence of character animation.
+- A supplied clip is real motion only if its provenance and rights are known.
+- A native i2v/t2v/ref-to-video result is a **candidate motion shot**. Provider success or
+  a downloadable URL proves delivery, not natural movement, identity continuity or story
+  correctness.
+
+For acting, locomotion, turns, reach/contact, prop handling, moving faces, dialogue or
+cross-shot continuity, read
+[the native AI motion production contract](references/ai-motion-production.md) before
+making a paid request. The current starter scripts do not enforce that contract
+automatically. Their built-in generated-video route is a four-second, single-start-image,
+`face_free` experiment; it cannot bind separate identity/look/interaction/motion assets or
+durably resume a provider task. Do not use that route for character-led motion and call it
+production-ready. Use a supplied, approved clip or stop until a capable adapter and task
+ledger are implemented and explicitly authorized.
 
 ## Per-shot narration (say = subtitle = its own voice clip)
 
@@ -136,10 +164,13 @@ Verify with `ffprobe` before delivery that the color tags are present.
 
 ## Director-style cinematic text-to-video prompts
 
-For the 1-2 hero motion shots, write the prompt like a shot list a director would hand a
-DP — this is what separates a cinematic clip from generic AI slop. **Use a strong LLM as a
-"director" to write these prompts**; a lazy one-line prompt is the real reason AI faces
-and motion look fake.
+For the 1-2 hero motion shots, compile a provider prompt from an approved neutral shot
+contract. Prompt quality matters, but reference admission, model capability, body
+mechanics and output review matter too; more words do not guarantee obedience.
+
+One provider request should produce one continuous photographic shot. Put cuts,
+shot/reverse-shot, montage, captions, transitions and final musical timing in the edit
+spec, not inside a multi-shot generation prompt.
 
 Structure (works in any language; keep the sections):
 
@@ -147,30 +178,32 @@ Structure (works in any language; keep the sections):
   plastic CG skin and over-smoothing.
 - **Duration** and **Aspect ratio** (e.g. 9:16).
 - **Scene** — environment, lighting, depth-of-field / background blur.
-- **Subject / character** — describe the character in *detail* (see the face lesson
-  below) and demand "strictly consistent" to prevent identity drift across shots.
+- **Subject / character** — bind the approved identity/look from
+  [character continuity](../character-continuity/SKILL.md) and include only the detail
+  needed for this shot.
 - **Audio** — sound design cues if the model supports it (often you disable the model's
   audio and lay your own music/voice in post).
-- **Per-shot, timecoded** — for each shot: camera position, camera move (dolly / tracking
-  / pan), the action, and where the hard cut lands on the beat.
-- **Action & continuity hard-constraints** — physically correct motion, no morphing, hair
-  / face / angle / wardrobe held across a cut, no teleporting, changes only at the
-  intended anchor frame.
+- **Single-shot temporal beats** — describe the start state, preparation, action/contact,
+  settling and end state so they close inside the requested duration. Avoid prose that
+  asks the provider to make internal cuts.
+- **Action & continuity hard-constraints** — physically correct motion, no morphing, hair,
+  face and wardrobe held across all frames and adjacent approved shots, no teleporting,
+  changes only at the intended anchor frame.
 - **Layered negatives** — write negatives in layers (action / wardrobe / camera /
   background), the more specific the less it breaks: no face swap, no extra limbs, no
   clipping, no warped objects, no garbled text or logos, no plastic CG skin, no
   over-smoothing, no cartoon, no morph transitions, no camera shake, no watermark.
 
-For faces: modern models render faces well when the prompt pins them down. Prefer writing
-the character in detail — age, hair, brows, skin, sweat, build, expression, wardrobe, plus
-"strictly consistent" — over avoiding faces. Face-avoidance (back-of-head / silhouette /
-over-the-shoulder) is a shortcut for when you don't need a face, not a rule. When emotion
-needs a face, write the face.
+For faces, bind a rights-cleared identity reference separately from wardrobe, expression,
+composition and motion references. Detailed prose can help, but “strictly consistent” is
+not an identity check. When emotion needs a face, specify gaze target and the causal
+expression change, then inspect the entire output at normal speed and intended size.
 
-Cost note: motion generation is expensive (seconds-based billing), and a still image +
-Ken Burns is near-$0. Reserve i2v/t2v for 1-2 key atmosphere shots; render number cards
-and most scenes as stills. Provider balances can lag ~1h after top-up — a "locked" error
-right after paying is usually propagation delay, retry later.
+Cost note: motion generation is expensive (often seconds-based billing), and a still
+image plus local camera treatment is near-$0. Reserve i2v/t2v for shots whose story value
+depends on real motion. Before submission, set an exact request-count and cost ceiling.
+Never turn an unclear response, timeout or provider error into a blind paid resubmit;
+save and reconcile the original task first.
 
 ## Reusable camera-move templates
 
@@ -187,8 +220,9 @@ Keep a small library of moves you can drop onto any topic:
 - **R3 — Ken Burns.** Slow zoom/pan (in / out / punch-in) over a still, paired with the
   per-shot subtitle. The near-$0 workhorse for number cards, document cards, and period
   stills when there's no motion budget.
-- **R4 — step-on-lens + 90° roll reveal + hold (showcase move).** A "make an entrance"
-  beat with no dialogue, carried by music + eyes + camera:
+- **R4 — step-on-lens + 90° roll reveal + hold (edit pattern).** Treat this as several
+  continuous shots joined by a motivated occlusion cut, not one provider request. It is a
+  "make an entrance" beat with no dialogue, carried by music + eyes + camera:
   1. **Step-on-lens (0–1.4s):** ultra-low ground-level up-angle, a foot/leg pressing close
      to the lens, ultra-wide (~13–16mm) perspective stretch, subject towering; high-
      contrast sky/skyline behind. Front 3 seconds hold the viewer.
@@ -203,9 +237,9 @@ Keep a small library of moves you can drop onto any topic:
 
 ## Production lessons (generalized)
 
-- **Describe characters in detail rather than avoiding faces.** Identical / plastic AI
-  faces come from lazy prompts, not from the model's limits. Pin the character down and
-  demand consistency to get a distinct, believable face.
+- **Give identity its own reference role.** Character detail belongs in a reusable
+  identity/look contract. Prompt prose alone cannot prove that the same person, wardrobe,
+  face geometry and accessories survived every frame.
 - **Style may vary, theme stays consistent.** Live-action, cinematic anime, or a
   game-style character composited into a real scene are all fair game per topic — keep the
   series theme coherent.
@@ -243,4 +277,7 @@ Keep a small library of moves you can drop onto any topic:
 Rough order of magnitude: a stills-only card video is cheap; one i2v/t2v hero shot is a
 few dollars; several motion shots run higher; per-shot TTS is cents per line. Scope your
 topics first and render them one at a time — don't batch-burn budget speculatively. Log
-every paid call. Review anything before it goes public.
+every paid call, reserve its maximum cost, and permit no automatic paid resubmit. A
+provider URL reaches only `provider_complete`; after download, hashing and technical
+probe, the file may become `candidate_pending_human_review`. Normal-speed review with
+sound is still required. Review anything before it goes public.
