@@ -110,9 +110,24 @@ It cannot return to `submitted` or enter assembly until the original task is rec
 ## High-risk body and camera handling
 
 For a turn, reach, step, impact, prop interaction or full-body reaction, use a
-rights-cleared real-world reference at 1x speed. Break the action into anticipation,
-weight transfer, movement, contact, load acceptance/braking and settle. Check the support
-foot, pelvis/root path, joint chain, secondary motion and end pose.
+rights-cleared real-world reference at 1x speed. If the user cannot record a rehearsal,
+that does not relax the gate. Use this three-layer route:
+
+1. `external_screen_study` may use lawfully viewed films, television, anime or web clips
+   to identify action phases and failure modes. Copyrighted screen media and ordinary
+   YouTube access are mechanism evidence only, never automatic model-input permission.
+2. `rights_cleared_motion_source` supplies the kinematic basis from user-owned,
+   commissioned, public-domain or explicitly licensed footage/mocap. Verify the exact
+   license, performer/likeness rights, AI-use restrictions and provider-input terms.
+3. `shot_specific_neutral_proxy` retargets and authors the exact shot on a neutral rig.
+   It must be faceless and voiceless and contain no original pixels, background, source
+   audio or recognizable performer. Preserve only the required motion, contact and timing.
+
+Break the action into anticipation, weight transfer, movement, contact, load
+acceptance/braking and settle. Check the support foot, pelvis/root path, joint chain,
+secondary motion and end pose. A rough 2D pose trace is only a `research_fixture`; it
+cannot pass as a production proxy because it does not prove depth, balance, foot lock,
+hand/prop contact or continuous whole-body mechanics.
 
 For a character raising a camera, separately lock:
 
@@ -123,6 +138,61 @@ For a character raising a camera, separately lock:
 
 Words such as “realistic,” high frame rate or optical-flow smoothness do not prove correct
 mechanics.
+
+## Neutral-proxy provenance and review
+
+Store a canonical lineage record next to every production proxy. Use stable IDs and exact
+hashes; do not replace these fields with prose:
+
+```yaml
+schema_version: "1.0"
+reference_id: motion-ref-...
+status: human_approved
+raw_video_used_as_model_input: false # downstream generative request
+sources:
+  - source_id: source-...
+    source_type: rights_cleared_motion_source # or external_screen_study
+    source_url: https://...
+    sha256: ... # when a local source file was lawfully retained
+    license_name: ...
+    license_url: https://...
+    rights_status: rights_cleared # license_verified | public_domain | external_study_only
+    use_role: kinematic_base # prop_handling | mechanism_only
+    raw_video_used_as_model_input: false
+transformations:
+  - transformation_id: transform-...
+    operation: pose_extract_retarget_author
+    input_source_ids: [source-...]
+exact_output:
+  path: ...
+  sha256: ...
+  role: shot_specific_neutral_proxy
+```
+
+`external_study_only` may have only `mechanism_only`; at least one separately cleared
+source must provide `kinematic_base` or `prop_handling`. Every transformation input must
+resolve to a listed source, and `exact_output.sha256` must match the actual proxy file.
+
+Bind a separate rights review to the same `reference_id` and proxy hash:
+
+```yaml
+status: rights_cleared_for_neutral_proxy_model_input
+authority: ...
+source_rights_confirmed: true
+provider_input_rights_confirmed: true
+original_pixels_not_bound: true
+proxy_sha256: ...
+reference_id: motion-ref-...
+reviewer: ...
+reviewed_at: ...
+```
+
+Then have a human watch the exact proxy at 1x and approve the action phases, root/weight,
+feet, gaze, hands, prop/contact and end state against the shot contract. Bind that verdict
+to the same hash. Fail the paid preflight when lineage or rights review is missing/stale,
+the only basis is `external_screen_study`, the artifact is a 2D research fixture, the 1x
+motion review is missing/rejected, the provider cannot bind the proxy by role, or current
+cost authorization is absent.
 
 ## Exact-output acceptance
 

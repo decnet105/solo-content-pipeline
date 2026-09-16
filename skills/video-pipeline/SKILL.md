@@ -14,8 +14,9 @@ description: >
 # Spec-JSON short-video pipeline
 
 A reproducible way for one person to produce narrated vertical shorts. Everything a clip
-needs lives in a single JSON spec; a build script turns that spec into a finished MP4 by
-calling AI APIs only for the assets that are missing, then assembling with PIL + ffmpeg.
+needs lives in a single JSON spec; a build script turns that spec into a rendered MP4
+candidate by calling AI APIs only for the assets that are missing, then assembling with
+PIL + ffmpeg.
 
 The one-command guarantee covers the starter's stills, cards, supplied clips, narration
 and final assembly. It does not guarantee production-grade recurring-character animation;
@@ -280,4 +281,7 @@ topics first and render them one at a time — don't batch-burn budget speculati
 every paid call, reserve its maximum cost, and permit no automatic paid resubmit. A
 provider URL reaches only `provider_complete`; after download, hashing and technical
 probe, the file may become `candidate_pending_human_review`. Normal-speed review with
-sound is still required. Review anything before it goes public.
+sound is still required. Review anything before it goes public. For a multi-shot run,
+hand exact-hash approved takes to
+[`video-run-control`](../video-run-control/SKILL.md) for picture lock, finish receipts,
+dependency invalidation, final-master QC, and the delivery hash gate.

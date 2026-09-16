@@ -551,7 +551,7 @@ def main(spec_path):
         mux_narration(master, final, total, music, mstart, narration, duck)
     else:
         mux_music(master, final, total, music, mstart)
-    print(f"\nFINAL: {final}  (~{total:.1f}s){'  music:'+os.path.basename(music) if music else '  (silent)'}")
+    print(f"\nRENDER CANDIDATE: {final}  (~{total:.1f}s){'  music:'+os.path.basename(music) if music else '  (silent)'}")
     write_publish_md(spec, final)
     subprocess.run(["ffprobe","-v","error","-show_entries",
         "stream=codec_type,width,height,pix_fmt,color_space,color_primaries:format=duration",

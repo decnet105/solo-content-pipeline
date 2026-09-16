@@ -28,6 +28,33 @@ For a third-party long prompt, store the URL, source, hash when lawfully obtaina
 compliant excerpts and a paraphrase—not the full prompt. Retain full text only when it is
 user-owned or its license explicitly permits that use.
 
+## Separate screen study from motion input
+
+When the production needs real-world mechanics but the user cannot record a rehearsal,
+keep three artifacts distinct:
+
+1. `external_screen_study` — film, television, anime or web video inspected only to learn
+   action phases, blocking, timing, gaze, contact and camera behavior;
+2. `rights_cleared_motion_source` — user-owned, commissioned, public-domain, or explicitly
+   licensed footage/mocap whose license, consent/likeness terms and intended use have been
+   checked;
+3. `shot_specific_neutral_proxy` — a faceless, voiceless neutral rig made for the exact
+   shot, with no source pixels, recognizable performer, original background or source
+   audio, and with authored support, weight, hands, prop contact and timing.
+
+A visible movie scene or YouTube URL may support `external_screen_study`; access to it does
+not grant download, derivative-use or AI-input rights. Never promote copyrighted screen
+media to model input from availability, attribution, a short excerpt or a fair-use guess.
+Use a separately rights-cleared motion source for the kinematic basis. Record negative
+examples too: a camera raised over the head, floating feet or slow-motion weight transfer
+can be valuable evidence without becoming a reference input.
+
+A pose trace or rough 2D skeleton is a `research_fixture`. It can reveal detection gaps and
+timing questions, but it is not a production proxy: it does not establish depth, foot lock,
+contact, balance, prop attachment or a continuous whole-body performance. Production use
+requires the canonical lineage, rights and normal-speed human gates in
+[the native motion contract](../video-pipeline/references/ai-motion-production.md).
+
 ## Separate claim from evidence
 
 Label every statement:

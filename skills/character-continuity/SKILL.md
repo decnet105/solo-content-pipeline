@@ -105,8 +105,17 @@ how the same identity, look, body, face, hands and props remain coherent while i
 
 For locomotion, contact, prop handling or generated dialogue, also apply
 [the native motion production contract](../video-pipeline/references/ai-motion-production.md).
-If rights, independent approved identity/interaction assets or a 1x motion reference are
-missing for a high-risk action, the paid-generation preflight must fail.
+If the user cannot provide a filmed rehearsal, preserve the distinction between
+`external_screen_study`, `rights_cleared_motion_source` and
+`shot_specific_neutral_proxy`. Film/television/anime/web clips may teach mechanics but are
+not model inputs without separate rights. Build the shot-specific proxy from rights-cleared
+footage/mocap; keep it faceless, voiceless and free of source pixels/background, and bind
+its exact hash to canonical lineage, a rights review and a human 1x motion review. A rough
+2D skeleton remains a research fixture, not an approved motion proxy.
+
+If rights, independent approved identity/interaction assets, a production-grade motion
+proxy or its exact-hash approvals are missing for a high-risk action, the paid-generation
+preflight must fail closed.
 
 ## Approval gate
 

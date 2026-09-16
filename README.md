@@ -12,9 +12,10 @@ I'm a solo builder, not a professional programmer. I described what I wanted to 
 
 ## What you'll build
 
-- **One spec, one video.** Write (or edit) a `spec.json` describing your shots, narration, and music. Run one command. Get a finished `.mp4`.
+- **One spec, one video candidate.** Write (or edit) a `spec.json` describing your shots, narration, and music. Run one command. Get a rendered `.mp4` candidate; final delivery still requires review of the exact output.
 - **AI assets, on demand.** The pipeline calls out to AI providers for images, short video clips, background music, and a voiceover — only for the pieces you don't already have.
-- **Reusable "skills."** Small instruction files that teach a coding agent _your_ standards — how to write a post, preserve a recurring character, study a reference, build a video and review paid AI motion — so it does not re-learn them from scratch.
+- **A way to learn from other people's videos, too.** Point a separate tool at any competitor or reference video and get a structured, eleven-dimension teardown — hook, retention, pacing, color, music, copy, and more — with an explicit adopt/skip filter, not just admiration.
+- **Reusable "skills."** Small instruction files that teach a coding agent _your_ standards — how to write a post, preserve a recurring character, study a reference, tear down a competitor's video, build a video, review paid AI motion, and control a run end to end — so it does not re-learn them from scratch.
 
 ## Who this is for
 
@@ -52,7 +53,7 @@ export VOICE_API_KEY="..."
 python3 scripts/make_short.py examples/example-spec.json
 ```
 
-When it finishes you'll have a finished vertical short in `output/`. Open it, see what you'd change, edit the spec, run it again.
+When it finishes you'll have a rendered vertical-short candidate in `output/`. Open it, review the exact file, see what you'd change, edit the spec, and run it again.
 
 ---
 
@@ -64,15 +65,69 @@ When it finishes you'll have a finished vertical short in `output/`. Open it, se
 - `scripts/gen_music.mjs` — calls a music-generation API for a backing track.
 - `scripts/gen_voice.mjs` — calls a text-to-speech API for narration.
 - `scripts/gen_number_card.py` — draws a crisp "big number" card locally (no AI — AI can't render exact numbers cleanly).
+- `scripts/deconstruct_video.py` — fetches a competitor or reference video (URL or local file) and produces dense frame samples, a contact sheet, and a timestamped manifest for a teardown.
 - `examples/example-spec.json` — a complete, runnable spec you can copy and edit.
 - `examples/prompts/example-t2v.txt` — a director-style prompt for a text-to-video shot.
 - `skills/video-pipeline/SKILL.md` — how to drive the video pipeline.
 - `skills/video-pipeline/references/ai-motion-production.md` — the fail-closed contract for real generated motion, paid-task recovery, reference roles and exact-output review.
+- `skills/video-run-control/SKILL.md` — end-to-end artifact lineage, picture lock, finishing receipts, invalidation, and the final human hash gate.
+- `skills/video-run-control/references/run-manifest-contract.md` — the generic run-manifest contract behind that control skill.
 - `skills/character-continuity/SKILL.md` — identity/look, expression, hands, props and recurring-character continuity.
-- `skills/reference-video-study/SKILL.md` — evidence-first reference study and single-variable experiments.
+- `skills/reference-video-study/SKILL.md` — evidence-first reference study and single-variable experiments (for reproducing a specific technique in your own generation pipeline).
+- `skills/video-deconstruct/SKILL.md` — the eleven-dimension competitor/reference-video teardown: hook, retention, pacing, color, music, copy, subtitles, emotional arc, resonance, plus the evidence-chain discipline and adoption filter that feed lessons back into your own skills.
+- `skills/video-deconstruct/references/deconstruct-framework.md` — the full checklist, report template, and do-not-copy list behind that skill.
 - `skills/social-post/SKILL.md` — how to write a post that doesn't read as AI.
 - `skills/social-reply/SKILL.md` — how to reply in a community without getting flagged.
 - `docs/` — the tutorials below.
+
+## Learning from a competitor's video
+
+The kit isn't only for generating video — it also ships a tool for the
+opposite direction: breaking down someone else's already-published video to
+learn *why* it works, instead of just admiring it.
+
+```bash
+python3 scripts/deconstruct_video.py "https://example.com/their-video" \
+  --out output/deconstruct/their-video \
+  --extract-audio
+```
+
+This fetches the source (yt-dlp for a URL — it respects whatever access
+controls and terms apply, so it never bypasses a login, paywall, CAPTCHA, or
+anti-bot protection; a local file is used as-is) and writes into the output
+folder:
+
+- `frames/` — densely sampled stills (2fps by default, capped so a long video
+  doesn't produce thousands of images)
+- `contact-sheet.jpg` — every sampled frame tiled into one image, so you can
+  scan a video's entire rhythm at a glance before reading anything frame by
+  frame
+- `frames.json` / `frames.csv` — a timestamped manifest of every sampled frame
+- `audio.mp3` (with `--extract-audio`) — mono 16kHz audio, useful for a
+  transcription pass
+
+The script only gathers evidence — it draws no conclusions. From there, hand
+the contact sheet, key frames, and manifest to your coding agent (or read them
+yourself) and work through the
+[`video-deconstruct` skill](skills/video-deconstruct/SKILL.md): score the
+video across eleven dimensions — hook, first-15% retention, shot pacing,
+transitions, color grade, music, copy, split-screen use, subtitle typography,
+emotional arc, and audience resonance — while keeping a strict line between
+what you **observed** (a timestamped fact), what you're **inferring** (your
+read of why, which can be wrong), and what's still **untested**.
+
+The report itself isn't the point. The skill's actual output is an explicit
+**adopt / skip / why** decision for every technique, judged against your own
+brand and audience rather than copied just because it worked for theirs, with
+at least one lesson written back into your own production skills so you don't
+relearn it on the next reference video. It is structural learning, not asset
+reuse: never take their soundtrack as your own background music (content-ID
+systems catch this even inside a transformative edit), and don't reuse an
+identifiable face, voice, account handle, platform UI, or watermark. The full
+checklist, evidence-chain convention, and do-not-copy list live in
+[`skills/video-deconstruct/references/deconstruct-framework.md`](skills/video-deconstruct/references/deconstruct-framework.md);
+the step-by-step walkthrough is in
+[docs/07](docs/07-competitor-video-teardown.md).
 
 ## Docs
 
@@ -81,6 +136,8 @@ When it finishes you'll have a finished vertical short in `output/`. Open it, se
 - [03 · Social content](docs/03-social-content.md) — the two writing "skills" and the reality of posting in communities.
 - [04 · How this was built](docs/04-how-this-was-built.md) — the meta story: how a non-coder built all of this by directing an agent.
 - [05 · Production quality loop](docs/05-production-quality-loop.md) — the difference between moving a still and real animation, plus reference roles, task recovery, motion/character gates and output QC.
+- [06 · End-to-end run control](docs/06-end-to-end-run-control.md) — artifact DAGs, selected-take picture lock, OTIO/color/audio receipts, invalidation, and exact-master delivery approval.
+- [07 · Tearing down a competitor's video](docs/07-competitor-video-teardown.md) — how to run the teardown tool, work the eleven dimensions, and turn "here's what they did" into an adopt/skip decision that actually updates your own production practice.
 
 ## How it was built (teaser)
 
@@ -98,7 +155,7 @@ MIT — see [LICENSE](LICENSE). Use it, fork it, ship your own.
 
 ## 中文速览 (TL;DR)
 
-- 这是一套「用 JSON 造竖屏短视频」的开源起步套件：写一个 spec 文件，跑一条命令，AI 出图/出片/配乐/配音，自动拼成成片。
+- 这是一套「用 JSON 造竖屏短视频」的开源起步套件：写一个 spec 文件，跑一条命令，AI 出图/出片/配乐/配音，自动拼成候选片；正式交付仍需对最终文件做精确人审。
 - 我不是程序员——整套脚本都是我用大白话「指挥」AI 编程助手写出来的，看结果、说哪里不对、反复迭代。
-- 还附带可复用的「技能」文件，覆盖社媒写作、角色连续性、参考片取证，以及真正 AI 动画的费用、任务恢复和成片人审。
+- 还附带可复用的「技能」文件，覆盖社媒写作、角色连续性、参考片取证、真正 AI 动画的费用与任务恢复，端到端成片的版本、总装和最终 hash 人审，以及一套**拆解分析竞品/参考视频**的技能——抓帧出联系单+时戳清单后，按钩子/前15%留存/节奏/转场/调色/BGM/文案/字幕/情绪弧/共鸣等十一维拆解，证据必分「观察到的事实/自己的推断/待验证」三档，每条技法给出用/不用的独立判断（不因为对方有效就照搬），并至少把一条心得写回自己的技能文件，见 [skills/video-deconstruct](skills/video-deconstruct/SKILL.md) 与 [docs/07](docs/07-competitor-video-teardown.md)。
 - 核心不是会写代码，而是**把想要的效果讲清楚 + 有审美 + 肯迭代**。完整故事见 [docs/04](docs/04-how-this-was-built.md)。

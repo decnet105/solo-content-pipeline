@@ -203,3 +203,10 @@ preflight/review guidance, not a claim that those controls are already implement
 code. A future production-grade extension should add multi-role reference admission,
 content-addressed caching, durable task state, cost reservation, output hashing and
 fail-closed assembly before advertising them as automatic guarantees.
+
+An approved motion take is still only one node in the full production run. It does not
+prove that every required shot was selected, the edit is frame-exact, the mix/grade/
+subtitles match their contracts, or a person approved the exact delivery master. Continue
+with [docs/06 · End-to-end run control](06-end-to-end-run-control.md) and the reusable
+[`video-run-control` skill](../skills/video-run-control/SKILL.md) for those cross-stage
+gates.
