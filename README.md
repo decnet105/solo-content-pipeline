@@ -127,7 +127,9 @@ identifiable face, voice, account handle, platform UI, or watermark. The full
 checklist, evidence-chain convention, and do-not-copy list live in
 [`skills/video-deconstruct/references/deconstruct-framework.md`](skills/video-deconstruct/references/deconstruct-framework.md);
 the step-by-step walkthrough is in
-[docs/07](docs/07-competitor-video-teardown.md).
+[docs/07](docs/07-competitor-video-teardown.md), including how to move it into
+a different project or niche — with either Claude Code or OpenAI Codex CLI —
+without copying anything that's specific to this kit.
 
 ## Docs
 

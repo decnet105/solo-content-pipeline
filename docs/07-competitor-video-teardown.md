@@ -82,6 +82,47 @@ teardown that changes nothing about how you make your next video was a
 research exercise, not a production input. If you can't name the one file
 that gets updated, the teardown isn't finished yet.
 
+## Adapting this to a different project or niche
+
+Nothing here is Claude-specific. `SKILL.md` and `deconstruct-framework.md` are
+plain Markdown, and `deconstruct_video.py` is a standalone script — any coding
+agent that can read a file and run a shell command can follow this, including
+[OpenAI's Codex CLI](01-getting-started.md), which this kit's own setup guide
+lists as an interchangeable alternative to Claude Code. Tell your agent "read
+`skills/video-deconstruct/SKILL.md` and its framework
+reference, then tear down `<competitor URL>`" and it works the same way
+regardless of which agent you picked. If you're on Codex CLI and want it
+loaded automatically instead of pasted in every time, add one line to your
+project's `AGENTS.md` pointing at the skill file — Codex reads that file on
+its own.
+
+Moving this into someone else's project (a different niche, a different
+platform, a different audience) needs almost no changes:
+
+- The six-step loop, the eleven dimensions, the evidence-chain labels, and the
+  sampling script all transfer as-is — they were never specific to this kit's
+  content style.
+- Exactly two things are project-specific and need rewriting, not copying:
+  the **"decide" clause** in each dimension (it references *your* palette
+  rules, *your* established voice, *your* audience — a cooking channel and a
+  finance channel will decide differently even when they observe the same
+  technique) and the **do-not-copy checklist** (a different niche has
+  different techniques it should default to rejecting). Have the agent ask a
+  few questions first — what's the niche, the visual identity, the typical
+  video length and tone, the actual audience — and write the answers directly
+  into that project's copy of `deconstruct-framework.md`, the same way
+  [`gen_number_card.py`](../scripts/gen_number_card.py) ships with an example
+  palette commented "customize for your brand" instead of leaving it
+  unstated.
+- Point step 6 (feed back) at wherever *that* project's production skill or
+  script actually lives — this kit's `video-pipeline` is just this kit's name
+  for it.
+
+One thing should not change when you adapt this: the rights and identity
+boundary below. "Don't reuse their soundtrack, face, voice, or watermark" is a
+copyright and platform-policy line, not a brand preference, and it holds
+regardless of niche.
+
 ## What this is not
 
 This is not a way to acquire assets. Never take the source's actual
