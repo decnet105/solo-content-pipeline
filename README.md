@@ -15,7 +15,7 @@ I'm a solo builder, not a professional programmer. I described what I wanted to 
 - **One spec, one video candidate.** Write (or edit) a `spec.json` describing your shots, narration, and music. Run one command. Get a rendered `.mp4` candidate; final delivery still requires review of the exact output.
 - **AI assets, on demand.** The pipeline calls out to AI providers for images, short video clips, background music, and a voiceover — only for the pieces you don't already have.
 - **A way to learn from other people's videos, too.** Point a separate tool at any competitor or reference video and get a structured, eleven-dimension teardown — hook, retention, pacing, color, music, copy, and more — with an explicit adopt/skip filter, not just admiration.
-- **Reusable "skills."** Small instruction files that teach a coding agent _your_ standards — how to write a post, preserve a recurring character, study a reference, tear down a competitor's video, build a video, review paid AI motion, and control a run end to end — so it does not re-learn them from scratch.
+- **Reusable "skills."** Small instruction files that teach a coding agent _your_ standards — how to write a post, preserve a recurring character, study a reference, tear down a competitor's video, build a video, explain an abstract idea with a stick figure when you have no footage for it, review paid AI motion, and control a run end to end — so it does not re-learn them from scratch.
 
 ## Who this is for
 
@@ -76,6 +76,8 @@ When it finishes you'll have a rendered vertical-short candidate in `output/`. O
 - `skills/reference-video-study/SKILL.md` — evidence-first reference study and single-variable experiments (for reproducing a specific technique in your own generation pipeline).
 - `skills/video-deconstruct/SKILL.md` — the eleven-dimension competitor/reference-video teardown: hook, retention, pacing, color, music, copy, subtitles, emotional arc, resonance, plus the evidence-chain discipline and adoption filter that feed lessons back into your own skills.
 - `skills/video-deconstruct/references/deconstruct-framework.md` — the full checklist, report template, and do-not-copy list behind that skill.
+- `skills/stickman-explainer/SKILL.md` — turn an abstract idea or mechanism (not an event you have footage of) into a six-scene stick-figure/minimalist-animation explainer: a director's proposal you approve, then visual-only generation prompts kept separate from narration and music.
+- `skills/stickman-explainer/references/` — the style catalog (character locks, environment specs, anti-deformation rules), the director's-proposal contract, the production-prompt contract, and a full worked example.
 - `skills/social-post/SKILL.md` — how to write a post that doesn't read as AI.
 - `skills/social-reply/SKILL.md` — how to reply in a community without getting flagged.
 - `docs/` — the tutorials below.
@@ -140,6 +142,7 @@ without copying anything that's specific to this kit.
 - [05 · Production quality loop](docs/05-production-quality-loop.md) — the difference between moving a still and real animation, plus reference roles, task recovery, motion/character gates and output QC.
 - [06 · End-to-end run control](docs/06-end-to-end-run-control.md) — artifact DAGs, selected-take picture lock, OTIO/color/audio receipts, invalidation, and exact-master delivery approval.
 - [07 · Tearing down a competitor's video](docs/07-competitor-video-teardown.md) — how to run the teardown tool, work the eleven dimensions, and turn "here's what they did" into an adopt/skip decision that actually updates your own production practice.
+- [08 · Explaining an idea with a stick figure](docs/08-stickman-explainer.md) — when to reach for a generated explainer instead of footage, why the generation prompts carry no dialogue or music, and how to design your own character instead of borrowing one.
 
 ## How it was built (teaser)
 
@@ -160,4 +163,5 @@ MIT — see [LICENSE](LICENSE). Use it, fork it, ship your own.
 - 这是一套「用 JSON 造竖屏短视频」的开源起步套件：写一个 spec 文件，跑一条命令，AI 出图/出片/配乐/配音，自动拼成候选片；正式交付仍需对最终文件做精确人审。
 - 我不是程序员——整套脚本都是我用大白话「指挥」AI 编程助手写出来的，看结果、说哪里不对、反复迭代。
 - 还附带可复用的「技能」文件，覆盖社媒写作、角色连续性、参考片取证、真正 AI 动画的费用与任务恢复，端到端成片的版本、总装和最终 hash 人审，以及一套**拆解分析竞品/参考视频**的技能——抓帧出联系单+时戳清单后，按钩子/前15%留存/节奏/转场/调色/BGM/文案/字幕/情绪弧/共鸣等十一维拆解，证据必分「观察到的事实/自己的推断/待验证」三档，每条技法给出用/不用的独立判断（不因为对方有效就照搬），并至少把一条心得写回自己的技能文件，见 [skills/video-deconstruct](skills/video-deconstruct/SKILL.md) 与 [docs/07](docs/07-competitor-video-teardown.md)。
+- 新增**火柴人/极简动画解说**技能：当某段内容是在讲道理（机制/逻辑/类比）而不是给证据、又找不到贴题素材时，用它产出导演预案+六条纯视觉生成 prompt——旁白和配乐完全不写进生成 prompt（多数 t2v 模型根本不认台词），照旧走这套管线自己的逐镜配音；角色只能是中性讲解者，不能拿去扮演真实人物本人。见 [skills/stickman-explainer](skills/stickman-explainer/SKILL.md) 与 [docs/08](docs/08-stickman-explainer.md)。
 - 核心不是会写代码，而是**把想要的效果讲清楚 + 有审美 + 肯迭代**。完整故事见 [docs/04](docs/04-how-this-was-built.md)。
