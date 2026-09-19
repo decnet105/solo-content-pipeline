@@ -112,7 +112,7 @@ A few optional top-level fields don't appear in the demo but are worth knowing:
 - `transitions` — override the shot-to-shot transitions (see [Transitions](#transitions)). Omit it to use the built-in default set.
 - `sfx` — a list of sound effects to layer in (see [Sound effects](#sound-effects)).
 - `end_logo` — optional corner branding: `{ "logo": "path/to/logo.png", "cta": "your line" }`, faded onto the last shot. Omit it to run brand-free.
-- `bgm_ducking_db` — how hard to push the music down under narration, in dB (default `-12`; a bigger number ducks harder).
+- `bgm_ducking_db` — how hard to push the music down under narration, in dB (default `-12`; a bigger number ducks harder). It only applies when voice carve is turned off (`music.carve: false`); see [Music](#music).
 
 ### A shot
 
@@ -123,7 +123,7 @@ Each entry in `shots` is a few seconds of screen time. The fields:
 - `secondary` — an optional second-language subtitle shown smaller beneath `primary` (great for bilingual reach — both languages on the **same** frame, not two separate exports).
 - `say` — the narration for this shot. The pipeline sends this text to the text-to-speech API, lays the resulting voice under the shot, **and sizes the shot to the length of that voice line** (plus a small tail). That's why narrated shots don't set a duration. Omit `say` for a silent shot — but then you must give the shot a `dur`.
 - `dur` — seconds on screen. Usually omitted, because a shot with `say` is timed to its narration. Set it explicitly only for a silent shot.
-- A **visual source** — exactly one of `image`, `clip`, or `seedance` (see [The kinds of visual](#the-kinds-of-visual) below).
+- A **visual source** — exactly one of `image`, `clip`, `seedance`, or `number_card` (see [The kinds of visual](#the-kinds-of-visual) below).
 - `motion` — the Ken Burns camera move applied to a still: `"in"`, `"out"`, `"panL"`, or `"punchin"` (defaults to `"in"`).
 - `mode` — how the picture fills the vertical frame: `"cover"` fills and crops (default); `"fit"` shrinks to fit and pads the edges.
 - `emotion` / `speed` — optional per-shot overrides for the narrator on this line (e.g. `"emotion": "happy"` for the upbeat fact). They override the top-level `voice` defaults.
@@ -187,35 +187,26 @@ Generated motion is the most impressive and the most expensive part — often bi
 > request and has no multi-reference or durable task ledger, so it is not the executor for
 > that character-production contract.
 
-### 3. Number cards — a crisp on-screen number (free, and important)
+### 3. `number_card` — a crisp on-screen number (free, and important)
 
-If your content has a key statistic, **do not** ask an image model to render the number — image models smear digits into gibberish. Instead, render the number cleanly with local text rendering, then use it as a shot's still.
+If your content has a key statistic, **do not** ask an image model to render the number — image models smear digits into gibberish. Give the shot a `number_card` and the pipeline draws the exact figure locally with PIL (zero API cost, re-rendered on every run so it always matches the spec):
 
-A number card is **not** a spec field. It's a two-step workflow:
+```json
+{
+  "key": "distance",
+  "primary": "About 384,400 km away.",
+  "say": "On average, it's about three hundred eighty-four thousand kilometers away.",
+  "number_card": { "label": "average distance", "number": "384400", "unit": "km", "source": "NASA" }
+}
+```
 
-1. Draw the card with the standalone tool:
+- `label`, `number`, `unit`, `source` — the small heading, the exact figure, the caption under it, and a small credit line. Only `number` is required.
+- `animate` — `"splitflap"` (the default) renders a mechanical departure-board reveal: each digit rolls up and locks in, left to right, then the figure holds. `"static"` renders a flat PNG instead. See [docs/09](09-number-cards-voice-mix-word-timing.md) for why the animated one is the default and how it is kept safe (it always lands on the exact figure, however short the shot).
+- `num_size` — an upper bound for the figure's font size; a row that would overflow the frame shrinks automatically.
+- `at_word` (optional, split-flap only) — make the figure lock in exactly when the narrator says a chosen word; see [docs/09](09-number-cards-voice-mix-word-timing.md#3-word-anchored-timing).
+- A `number_card` shot cannot also carry its own `image` / `clip`. Everything else about the shot (`say`, `primary`, subtitles, transitions) works as usual.
 
-   ```bash
-   python3 scripts/gen_number_card.py --number 384400 --unit km \
-     --label "average distance" --out assets/card.png
-   ```
-
-   (Other options: `--source "NOAA"` for a small credit line, `--num-size 340` to resize the figure.)
-
-2. Reference the PNG it produced as that shot's still, via `image.src`:
-
-   ```json
-   {
-     "key": "distance",
-     "primary": "About 384,400 km away.",
-     "say": "On average, it's about three hundred eighty-four thousand kilometers away.",
-     "image": { "src": "assets/card.png" },
-     "motion": "in",
-     "mode": "fit"
-   }
-   ```
-
-The result is free, razor-sharp, and on-brand. Any time a figure, date, or label matters, make it a number card and reference it with `image.src`.
+The two renderers are also plain command-line tools if you want a card outside a spec: `scripts/gen_number_card.py` (static PNG, used as `image.src`) and `scripts/gen_splitflap_card.py` (animated mp4, used as `clip`).
 
 ---
 
@@ -255,8 +246,10 @@ One track for the whole video, generated once (from `prompt`) and cached like ev
 - `file` — use this instead of `prompt` to bring your own track.
 - `start` — seconds into the track to start from, so you can align its energy peak to a key shot.
 - `instrumental` — keep it wordless so lyrics don't fight the narration.
+- `carve` — how the music is pushed out of the narrator's way. **On by default**: the track is split into low / mid / high bands and only the mid band (where speech is understood) is compressed hard against the narration, so the bed keeps its warmth without competing with the voice. `false` restores the older flat ducking (where `bgm_ducking_db` applies); a small object overrides the tuning (see `CARVE_DEFAULTS` in `scripts/make_short.py`).
+- `gain_db` — the music's static level before ducking (default about `-1.4` dB). Lower it if your track is mastered very loud.
 
-The conductor trims the track to the video's length, fades it out at the end, and ducks it under the voiceover so narration stays clear (see `bgm_ducking_db`).
+The conductor trims the track to the video's length, fades it out at the end, and ducks it under the voiceover so narration stays clear. To check the result on a real render instead of guessing, run `scripts/measure_voice_band.py` (see [docs/09](09-number-cards-voice-mix-word-timing.md#2-keep-the-music-out-of-the-voice-band)).
 
 ---
 
@@ -360,7 +353,7 @@ Generated motion video is where budgets die. Keep the bill small:
 
 - **Default to stills + Ken Burns for card/fact formats.** A strong still with a slow push costs a fraction of a video clip. Do not use it as a substitute when the story depends on character acting, contact or real movement.
 - **Reserve `seedance` (or a supplied `clip`) for one or two hero moments** per video — the opener or the payoff. Not every shot needs to move on its own.
-- **Number cards are free.** Any figure, date, or label should be a number card referenced via `image.src`, never an AI-rendered image.
+- **Number cards are free.** Any figure, date, or label should be a `number_card` shot, never an AI-rendered image.
 - **Lean on the cache deliberately.** Once an asset looks right, preserve it and its input record. When changing a shot, invalidate only its cache key/file and never assume prompt edits were detected automatically.
 - **Keep motion shots short.** Since video is usually billed per second, a 3–4 second hero clip costs half of an 8-second one. Cut to a still before the motion overstays.
 - **Prototype with stills, then add the hero.** Get your timing, narration, and subtitles right with cheap stills first; add the one expensive `seedance` shot last, once the structure is locked.

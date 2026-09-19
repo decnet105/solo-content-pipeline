@@ -8,7 +8,9 @@ description: >
   topics by swapping a spec, plan a bounded native-motion shot, or extend the pipeline.
   Distinguish inexpensive still-card assembly from real generated character motion; use
   explicit reference roles, paid-request recovery, exact-output review, per-shot
-  narration, locally rendered exact text, same-frame bilingual subtitles, and BT.709.
+  narration, locally rendered exact text (animated split-flap number cards), a music bed
+  carved out of the narrator's voice band, word-anchored effect timing, same-frame
+  bilingual subtitles, and BT.709.
 ---
 
 # Spec-JSON short-video pipeline
@@ -61,12 +63,13 @@ Consequences worth designing around:
   making shot 1 the hook itself.
 - `shots[]` — the body. Each shot carries:
   - `image.src` — a background still (generated or reused), or a PIL-rendered card.
+  - `number_card` — an exact figure drawn locally (see below); use this, not `image.gen`, for any number.
   - `say` — the narration line for this shot (see per-shot narration below).
   - `duration`, and a camera move (`kenburns` for stills, or a motion clip).
   - optional `emotion` / `speed` for the voice, and `sfx` entries.
 - `outro` — closing / call-to-comment shot, folded onto the tail rather than shown as a
   separate abrupt end card.
-- `music` — the BGM bed.
+- `music` — the BGM bed (`carve` keeps it out of the voice band; see *Music under narration*).
 - `narration` / `voice` — top-level voice defaults (voice id, speed, ducking level).
 - `transitions` — per-cut transition choices.
 
@@ -133,6 +136,44 @@ shot whose job is to show a figure, a date, a stat, or a document detail must be
   aged / textured AI scene plates around it.
 - Source your figures from authoritative references (cite them), so the numbers are
   defensible — the whole point of a clean number card is trust.
+
+**In the spec, use the `number_card` shot field** — `{label, number, unit, source}`. It
+renders an animated **split-flap reveal** by default (each digit rolls up and locks in,
+left to right, and always lands on the exact figure however short the shot;
+`"animate": "static"` gives a flat PNG). Zero API cost, re-rendered every run. Standalone
+tools: `scripts/gen_splitflap_card.py` (mp4) and `scripts/gen_number_card.py` (PNG).
+Use a font with lining figures (`VIDEOGEN_FONT`) — some serifs draw a `0` like an `o`.
+Details, safety guarantees and the font note: [docs/09](../../docs/09-number-cards-voice-mix-word-timing.md).
+
+## Music under narration: keep the voice band clear
+
+Flat ducking lowers every frequency equally, yet speech is understood in ~500 Hz–3 kHz, so
+a bed that is "ducked 12 dB" can still be as loud as the narrator *in that band*. The
+default mix is therefore a **voice carve**: split the BGM low/mid/high and compress only
+the mid band hard against the narration (`music.carve`, on by default; `false` = legacy
+flat ducking, bit-identical to the old output; `music.gain_db` = static bed level).
+
+- **Measure before tuning:** `python3 scripts/measure_voice_band.py spec.json` prints how
+  many dB the narration sits above the music in that band (flat vs carve). Above ~+10 dB
+  is comfortable; below ~+6 dB the bed competes with the voice.
+- It is a band-RMS proxy, not STI/STOI: it tells you which renders are at risk, the ears
+  choose the setting. With carve on, `bgm_ducking_db` no longer applies.
+
+## Word-anchored timing (optional)
+
+`number_card.at_word` (+ `at_word_nth`, `at_mode: settle|start`) makes the figure lock in
+as the narrator says a chosen word instead of at a fixed offset. It needs a per-shot `say`
+and `pip install openai-whisper stable-ts`; the word time comes from the shot's own voice
+clip (Whisper-medium transcription + stable-ts alignment, averaged, first word after each
+pause snapped to the detected voiced onset). If the tools are missing the render **warns
+and falls back to normal timing**; a word not in the script stops the render.
+
+- Never anchor on a TTS engine's own word-boundary events (they fire ~65 ms before the
+  audible onset) and never use Whisper large-v3 transcription for it (drops words, shifts
+  everything after). Measured accuracy, English caveats and the end-to-end check are in
+  [docs/09](../../docs/09-number-cards-voice-mix-word-timing.md#3-word-anchored-timing).
+- Opt-in on purpose: make "effects land on words" a default only after you have watched
+  it on your own material.
 
 ## Same-frame bilingual subtitles
 
@@ -270,6 +311,9 @@ Keep a small library of moves you can drop onto any topic:
   stop. Let a voiceless tail shot carry the music up and gently down.
 - **Fold the CTA onto the tail** rather than tacking on a separate abrupt end card, and
   keep the brand mark in a single consistent corner across the whole series.
+- **Adopt outside techniques by measuring, not admiring.** Re-implement the idea inside this
+  pipeline, measure it on your own real files, ship it opt-in, and promote it to default only
+  after a human has watched/listened to A/B versions (docs/09, last section).
 - **Test with small samples, don't over-attribute.** A handful of early views is noise;
   read the direction signal, not the exact number.
 

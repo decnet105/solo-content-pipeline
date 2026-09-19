@@ -59,12 +59,15 @@ When it finishes you'll have a rendered vertical-short candidate in `output/`. O
 
 ## Repo map
 
-- `scripts/make_short.py` — the conductor. Reads a spec, generates or reuses each asset, renders subtitles and number cards, and stitches everything with ffmpeg.
+- `scripts/make_short.py` — the conductor. Reads a spec, generates or reuses each asset, renders subtitles and number cards, mixes the music under the narrator (voice-band carve by default), and stitches everything with ffmpeg.
 - `scripts/gen_image.mjs` — calls an image-generation API for a still.
 - `scripts/gen_video.mjs` — calls a text/image-to-video API for a short clip.
 - `scripts/gen_music.mjs` — calls a music-generation API for a backing track.
 - `scripts/gen_voice.mjs` — calls a text-to-speech API for narration.
 - `scripts/gen_number_card.py` — draws a crisp "big number" card locally (no AI — AI can't render exact numbers cleanly).
+- `scripts/gen_splitflap_card.py` — the animated version: a mechanical split-flap reveal that always lands on the exact figure. It is what a spec's `number_card` renders by default.
+- `scripts/word_anchor.py` — optional: finds when a chosen word is spoken in a narration clip (Whisper + stable-ts + pause snapping), so a card can lock in exactly on that word.
+- `scripts/measure_voice_band.py` — optional: measures how many dB the narration sits above the music in the speech band, for flat ducking vs the voice-carve mix.
 - `scripts/deconstruct_video.py` — fetches a competitor or reference video (URL or local file) and produces dense frame samples, a contact sheet, and a timestamped manifest for a teardown.
 - `examples/example-spec.json` — a complete, runnable spec you can copy and edit.
 - `examples/prompts/example-t2v.txt` — a director-style prompt for a text-to-video shot.
@@ -143,6 +146,7 @@ without copying anything that's specific to this kit.
 - [06 · End-to-end run control](docs/06-end-to-end-run-control.md) — artifact DAGs, selected-take picture lock, OTIO/color/audio receipts, invalidation, and exact-master delivery approval.
 - [07 · Tearing down a competitor's video](docs/07-competitor-video-teardown.md) — how to run the teardown tool, work the eleven dimensions, and turn "here's what they did" into an adopt/skip decision that actually updates your own production practice.
 - [08 · Explaining an idea with a stick figure](docs/08-stickman-explainer.md) — when to reach for a generated explainer instead of footage, why the generation prompts carry no dialogue or music, and how to design your own character instead of borrowing one.
+- [09 · Number cards, a voice-first music mix, and word-anchored timing](docs/09-number-cards-voice-mix-word-timing.md) — the split-flap number card, carving the music out of the narrator's voice band (with a tool to measure it), and landing an effect on a spoken word — each with the numbers from real renders, plus the learn-it-natively-then-measure-it method behind all three.
 
 ## How it was built (teaser)
 
@@ -164,4 +168,5 @@ MIT — see [LICENSE](LICENSE). Use it, fork it, ship your own.
 - 我不是程序员——整套脚本都是我用大白话「指挥」AI 编程助手写出来的，看结果、说哪里不对、反复迭代。
 - 还附带可复用的「技能」文件，覆盖社媒写作、角色连续性、参考片取证、真正 AI 动画的费用与任务恢复，端到端成片的版本、总装和最终 hash 人审，以及一套**拆解分析竞品/参考视频**的技能——抓帧出联系单+时戳清单后，按钩子/前15%留存/节奏/转场/调色/BGM/文案/字幕/情绪弧/共鸣等十一维拆解，证据必分「观察到的事实/自己的推断/待验证」三档，每条技法给出用/不用的独立判断（不因为对方有效就照搬），并至少把一条心得写回自己的技能文件，见 [skills/video-deconstruct](skills/video-deconstruct/SKILL.md) 与 [docs/07](docs/07-competitor-video-teardown.md)。
 - 新增**火柴人/极简动画解说**技能：当某段内容是在讲道理（机制/逻辑/类比）而不是给证据、又找不到贴题素材时，用它产出导演预案+六条纯视觉生成 prompt——旁白和配乐完全不写进生成 prompt（多数 t2v 模型根本不认台词），照旧走这套管线自己的逐镜配音；角色只能是中性讲解者，不能拿去扮演真实人物本人。见 [skills/stickman-explainer](skills/stickman-explainer/SKILL.md) 与 [docs/08](docs/08-stickman-explainer.md)。
+- 新增三项**做了就量、量了才当缺省**的小升级（见 [docs/09](docs/09-number-cards-voice-mix-word-timing.md)）：①数字卡默认走**机械翻页**（`number_card` 字段，本地 PIL 画、零 API 成本，数字永远精确落定，不会停在半翻状态）；②配乐默认**避开人声频段**（把 BGM 分低/中/高三段，只把 500Hz–3kHz 人声段对着旁白深压，`music.carve`，`false` 可退回旧混法且音频逐字节一致；附 `measure_voice_band.py` 量“旁白比配乐高多少 dB”）；③可选的**按词锚定**（`number_card.at_word`，让数字在旁白念到某个词的瞬间落定；40 条真实旁白上词起点误差中位数 22ms，缺工具时自动回落，不中断出片）。这三项的共同思路：读别人的项目只学技法、在自家管线里原生重做、用自己的真实文件量数字、先做成可选、人听过看过才升缺省。
 - 核心不是会写代码，而是**把想要的效果讲清楚 + 有审美 + 肯迭代**。完整故事见 [docs/04](docs/04-how-this-was-built.md)。

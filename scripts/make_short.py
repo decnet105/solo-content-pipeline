@@ -9,7 +9,9 @@
 #
 # Spec schema (see examples/example-spec.json for a runnable example):
 #   name, out (output path),
-#   music:   {prompt|file, start(sec, align the energy peak to a key shot), instrumental}
+#   music:   {prompt|file, start(sec, align the energy peak to a key shot), instrumental,
+#             carve?(default on: keep the BGM out of the voice band; false = legacy flat ducking),
+#             gain_db?(static bed level, default -1.4)}
 #   intro:   {title, subtitle, dur, logo?}          # generic text hook card
 #   outro:   {title, subtitle?, tagline?, cta?, dur, logo?}   # generic text end card
 #   end_logo:{logo?, cta?}                           # OPTIONAL corner branding (image + CTA)
@@ -18,7 +20,9 @@
 #             say,                                     # per-shot narration line (see below)
 #             image:{src:<existing> | gen:<image prompt>},
 #             clip:<existing motion mp4> | seedance:{prompt,face_free},
-#             clip_ss:<clip start offset>, motion:in|out|panL|punchin, mode:cover|fit } ]
+#             clip_ss:<clip start offset>, motion:in|out|panL|punchin, mode:cover|fit,
+#             number_card:{label, number, unit?, source?, animate?:splitflap|static,   # exact figure, drawn locally
+#                          at_word?, at_word_nth?, at_mode?:settle|start} } ]          # at_word: land it on a spoken word
 #
 # Notes: image-to-video models hard-block clear faces -> a face shot with
 #   face_free=false automatically falls back to Ken Burns on a still.
@@ -27,7 +31,7 @@
 #   are plain text cards from the spec; the optional corner logo reads a
 #   user-supplied image path + CTA text from the spec (omit to run brand-free).
 # ============================================================================
-import os, sys, json, subprocess
+import os, sys, json, math, subprocess
 from PIL import Image, ImageDraw, ImageFont
 
 W, H, FPS = 1080, 1920, 30
@@ -73,6 +77,8 @@ GEN_IMAGE = os.path.join(_HERE, "gen_image.mjs")
 GEN_VIDEO = os.path.join(_HERE, "gen_video.mjs")
 GEN_MUSIC = os.path.join(_HERE, "gen_music.mjs")
 GEN_VOICE = os.path.join(_HERE, "gen_voice.mjs")
+GEN_NUMBER_CARD = os.path.join(_HERE, "gen_number_card.py")
+GEN_SPLITFLAP_CARD = os.path.join(_HERE, "gen_splitflap_card.py")
 
 # ---------------------------------------------------------------- text helpers
 # Closing punctuation that must not begin a wrapped line (Latin + CJK line-break
@@ -288,18 +294,71 @@ def mux_music(master, final, total, music, start):
     else:
         subprocess.run(["ffmpeg","-y","-i",master,"-c","copy","-movflags","+faststart", final], check=True, capture_output=True)
 
-def mux_narration(master, final, total, music, start, narration, duck_db=-12):
-    """Narration is the lead track; BGM sits under it and is dynamically pushed
-    down by the narration via a sidechain compressor (auto-ducking)."""
+# ---------------------------------------------------------------- BGM under narration
+# Flat ducking (the legacy path) lowers EVERY frequency of the BGM by the same amount. But speech is understood
+# in roughly the 500 Hz - 3 kHz band, so a BGM that is only "somewhat quieter" overall can still be as loud as
+# the narrator exactly where it matters — worst for older viewers. "Voice carve" instead splits the BGM into
+# low / mid / high with a 4th-order Linkwitz-Riley crossover, compresses the MID band hard against the narration
+# (sidechain) and the low/high bands only lightly, so the bed keeps its warmth and air but leaves the voice band
+# clear. The BGM is delayed 30 ms so the compressor is already closing when a syllable starts (lookahead).
+# Default ON (spec: music.carve = false -> legacy flat ducking, where bgm_ducking_db applies; true or a dict of
+# overrides of CARVE_DEFAULTS). Measure the effect on your own render with scripts/measure_voice_band.py.
+BED_GAIN_DB = 20 * math.log10(0.85)      # the starter's fixed bed level (~ -1.4 dB); override with music.gain_db
+CARVE_DEFAULTS = dict(lo_hz=250, hi_hz=4200, mid_thr=0.02, mid_ratio=12, mid_att=6, mid_rel=380,
+                      edge_thr=0.05, edge_ratio=1.5, edge_att=20, edge_rel=350, lookahead_ms=30)
+CARVE_DEFAULT_ON = True
+
+def carve_params(carve):
+    c = dict(CARVE_DEFAULTS)
+    if isinstance(carve, dict):
+        bad = sorted(set(carve) - set(CARVE_DEFAULTS))
+        if bad:
+            raise RuntimeError(f"music.carve: unknown parameter(s) {bad}; allowed: {sorted(CARVE_DEFAULTS)}")
+        c.update(carve)
+    return c
+
+def music_carve_setting(spec):
+    """spec -> None (carve off, legacy flat ducking) | True | dict (on). Omitted/null = CARVE_DEFAULT_ON; false = off."""
+    m = spec.get("music") if isinstance(spec.get("music"), dict) else {}
+    v = m.get("carve")
+    if v is None:
+        v = CARVE_DEFAULT_ON
+    return None if v is False else v
+
+def carve_bed_filters(bg_in, keys, g, total, carve, out="duckbg"):
+    """BGM from `bg_in` -> static gain + tail fade + lookahead + 3-band split + per-band sidechain compression -> [out].
+    `keys` are three already-split copies of the narration used as sidechain inputs."""
+    c = carve_params(carve)
+    la = f"adelay={c['lookahead_ms']}|{c['lookahead_ms']}," if c["lookahead_ms"] else ""
+    k0, k1, k2 = keys
+    return (f"{bg_in}volume={g:.2f}dB,afade=t=out:st={max(0.4, total - 2.0):.2f}:d=2.0,{la}"
+            f"acrossover=split={c['lo_hz']} {c['hi_hz']}:order=4th[lo][mid][hi];"
+            f"[lo]{k0}sidechaincompress=threshold={c['edge_thr']}:ratio={c['edge_ratio']}:attack={c['edge_att']}:release={c['edge_rel']}[lod];"
+            f"[mid]{k1}sidechaincompress=threshold={c['mid_thr']}:ratio={c['mid_ratio']}:attack={c['mid_att']}:release={c['mid_rel']}[midd];"
+            f"[hi]{k2}sidechaincompress=threshold={c['edge_thr']}:ratio={c['edge_ratio']}:attack={c['edge_att']}:release={c['edge_rel']}[hid];"
+            f"[lod][midd][hid]amix=inputs=3:duration=longest:normalize=0[{out}]")
+
+def narration_bed_graph(total, duck_db=-12, gain_db=None, carve=None):
+    """Filter graph over input 1 = BGM and input 2 = narration; leaves [duckbg] (ducked BGM) and [nmix] (narration).
+    Shared by mux_narration and scripts/measure_voice_band.py so the measurement uses the production mix."""
+    if carve is not None and carve is not False:
+        g = BED_GAIN_DB if gain_db is None else float(gain_db)
+        return ("[2:a]asplit=4[k0][k1][k2][nmix];"
+                + carve_bed_filters("[1:a]", ["[k0]", "[k1]", "[k2]"], g, total, carve))
+    duck_ratio = max(2, min(20, int(10 ** (abs(duck_db) / 20.0))))   # -12 dB -> ratio 3
+    vol = "0.85" if gain_db is None else f"{float(gain_db):.2f}dB"
+    return ("[2:a]asplit=2[nsc][nmix];"
+            f"[1:a]volume={vol},afade=t=out:st={max(0.4, total - 2.0):.2f}:d=2.0[bg];"
+            f"[bg][nsc]sidechaincompress=threshold=0.05:ratio={duck_ratio}:attack=20:release=350[duckbg]")
+
+def mux_narration(master, final, total, music, start, narration, duck_db=-12, gain_db=None, carve=None):
+    """Narration is the lead track; the BGM sits under it and is pushed down by the narration via sidechain
+    compression — flat (carve=None, legacy) or per-band voice carve (see above)."""
     if music and os.path.exists(music):
         # 0=video(+silent track) · 1=BGM(cut from start) · 2=narration
         vin = ["-i", master, "-ss", str(start), "-i", music, "-i", narration]
-        duck_ratio = max(2, min(20, int(10 ** (abs(duck_db) / 20.0))))   # -12dB -> ratio ~4
-        fc = ("[2:a]asplit=2[nsc][nmix];"
-              "[1:a]volume=0.85,afade=t=out:st=%.2f:d=2.0[bg];"
-              "[bg][nsc]sidechaincompress=threshold=0.05:ratio=%d:attack=20:release=350[duckbg];"
-              "[duckbg][nmix]amix=inputs=2:duration=longest:dropout_transition=0.5:normalize=0[aout]"
-              % (max(0.4, total - 2.0), duck_ratio))
+        fc = (narration_bed_graph(total, duck_db, gain_db, carve)
+              + ";[duckbg][nmix]amix=inputs=2:duration=longest:dropout_transition=0.5:normalize=0[aout]")
         subprocess.run(["ffmpeg","-y",*vin,"-filter_complex",fc,"-map","0:v","-map","[aout]",
             "-t",f"{total:.3f}","-c:v","copy","-c:a","aac","-b:a","192k","-movflags","+faststart", final],
             check=True, capture_output=True)
@@ -312,6 +371,9 @@ def mux_narration(master, final, total, music, start, narration, duck_db=-12):
 def run_node(script, args, label):
     print(f"  > {label} ...")
     subprocess.run(["node", script, *args], check=True)
+def run_py(script, args, label):
+    print(f"  > {label} ...")
+    subprocess.run([sys.executable, script, *args], check=True)
 def resolve_image(shot, tmp):
     img = shot.get("image", {})
     if img.get("src"): return img["src"]
@@ -389,6 +451,73 @@ def resolve_shot_voice(shot, vcfg, tmp):
         if pit is not None: a += ["--pitch", str(pit)]
         run_node(GEN_VOICE, a, f"gen_voice {shot['key']}({vid})")
     return out, ffprobe_dur(out)
+NUMBER_CARD_DEFAULT_ANIMATE = "splitflap"    # a `number_card` without `animate` uses the split-flap reveal; "static" opts out
+def anchor_word_time(shot, nc, tmp, vcfg):
+    """number_card.at_word -> (start of that word on THIS shot's timeline in seconds | None, voice duration).
+    Shot timeline = voice start (say_lead) + the word's start inside the voice clip. Needs per-shot narration (`say`).
+    Alignment tooling missing / clip not alignable -> (None, ...) so the caller falls back to the default timing;
+    a word that is not in the script raises AnchorSpecError (a spec mistake)."""
+    if not shot.get("say"):
+        raise RuntimeError(f"{shot.get('key')}: number_card.at_word needs a per-shot narration line (`say`) on the same shot")
+    voice, vd = resolve_shot_voice(shot, vcfg or {}, tmp)
+    import word_anchor as WA               # lives next to this file; heavy imports only happen if at_word is used
+    say = shot["say"]
+    try:
+        data = WA.align_chars(voice, say, tmp, nc.get("at_lang", vcfg.get("language", "en") if vcfg else "en"))
+        t_word, _ = WA.find_word(say, data["pred"], nc["at_word"], nc.get("at_word_nth", 1))
+    except WA.AlignmentUnavailable as e:
+        print(f"  ! {shot['key']}: at_word alignment unavailable ({e}); using the default flip timing")
+        return None, vd
+    lead = shot.get("say_lead", 0.12)
+    print(f"  at_word {nc['at_word']!r} @{shot['key']}: {t_word:.2f}s into the voice -> {lead + t_word:.2f}s into the shot "
+          f"({'cached' if data['cached'] else 'freshly aligned'}, coverage {data['coverage']})")
+    return lead + t_word, vd
+
+def resolve_number_card(shot, tmp, vcfg=None):
+    """shot.number_card -> shot["clip"] (split-flap mp4) or shot["image"]["src"] (static PNG); the normal
+    resolve_image/resolve_clip/build_* path then handles it like any other shot. Rendered locally with PIL + ffmpeg
+    (zero API cost) on every run, so it always matches the current spec.
+    at_word (split-flap only): the last digit locks in at the moment the narrator starts that word
+    (at_mode "settle", default) or the flip starts there ("start"). Falls back to default timing if alignment is unavailable."""
+    nc = shot.get("number_card")
+    if not nc:
+        return
+    if shot.get("image") or shot.get("clip"):
+        raise RuntimeError(f"{shot.get('key')}: number_card cannot be combined with a hand-written image/clip on the same shot")
+    animate = nc.get("animate", NUMBER_CARD_DEFAULT_ANIMATE)
+    if animate not in ("splitflap", "static"):
+        raise RuntimeError(f"{shot.get('key')}: number_card.animate must be splitflap|static, got {animate!r}")
+    if nc.get("at_word") and animate != "splitflap":
+        print(f"  ! {shot.get('key')}: at_word only applies to the splitflap animation (static has nothing to time); ignored")
+    label, number = nc.get("label", ""), str(nc["number"])
+    unit, source = nc.get("unit", ""), nc.get("source", "")
+    if animate == "splitflap":
+        out = f"{tmp}/numcard_{shot['key']}.mp4"
+        # Shot length = its voice clip + tail pad in per-shot mode (the voice is cached, so this costs nothing extra
+        # later); otherwise the shot's declared dur.
+        vd = resolve_shot_voice(shot, vcfg or {}, tmp)[1] if shot.get("say") else 0.0
+        dur_hint = (vd + shot.get("pad", 0.5)) if vd else (shot.get("dur") or 2.5)
+        hold_end = max(dur_hint, 2.0) + 1.0                      # the clip must outlast the shot; build_clip trims it
+        # The flip must finish on the exact figure well inside the shot: cap flip time at 60% of the shot (1-3 s).
+        timing = ["--max-anim", f"{min(3.0, max(1.0, dur_hint * 0.6)):.2f}"]
+        if nc.get("at_word"):
+            mode = nc.get("at_mode", "settle")
+            if mode not in ("settle", "start"):      # validate before the (slow) alignment
+                raise RuntimeError(f"{shot.get('key')}: number_card.at_mode must be settle|start, got {mode!r}")
+            t_seg, vd = anchor_word_time(shot, nc, tmp, vcfg)
+            if t_seg is not None:
+                timing = ["--settle-at" if mode == "settle" else "--hold-start", f"{t_seg:.3f}"]
+                need = vd + shot.get("say_lead", 0.12) + shot.get("pad", 0.5)
+                hold_end = max(need - t_seg, 1.0) + 1.5
+        run_py(GEN_SPLITFLAP_CARD, [out, "--label", label, "--number", number, "--unit", unit, "--source", source,
+               "--num-size", str(nc.get("num_size", 260)), "--hold-end", f"{hold_end:.3f}", *timing],
+               f"splitflap {shot['key']}")
+        shot["clip"] = out
+    else:
+        out = f"{tmp}/numcard_{shot['key']}.png"
+        run_py(GEN_NUMBER_CARD, ["--out", out, "--label", label, "--number", number, "--unit", unit,
+               "--source", source, "--num-size", str(nc.get("num_size", 300))], f"number_card {shot['key']}")
+        shot["image"] = {"src": out}
 def build_shot_narration(segs, starts, sfx, tmp):
     """Position each shot's voice clip on the finished timeline by absolute
     offset (adelay), layer in the SFX, and mix into a single narration track
@@ -470,6 +599,7 @@ def main(spec_path):
                          title=intro.get("title",""), subtitle=intro.get("subtitle",""),
                          logo=intro.get("logo"), tmp=tmp))
     for sh in shots:
+        resolve_number_card(sh, tmp, vcfg)   # number_card -> sh['clip'] (split-flap) or sh['image'] (static)
         img = resolve_image(sh, tmp); clip = resolve_clip(sh, img, tmp)
         seg = dict(key=sh["key"], mode=sh.get("mode","cover"), style="lower",
                    dur=sh.get("dur", 0.0),
@@ -548,7 +678,8 @@ def main(spec_path):
 
     if narration:
         duck = (spec.get("narration") or spec.get("voice") or {}).get("bgm_ducking_db", spec.get("bgm_ducking_db", -12))
-        mux_narration(master, final, total, music, mstart, narration, duck)
+        mcfg = spec.get("music") if isinstance(spec.get("music"), dict) else {}
+        mux_narration(master, final, total, music, mstart, narration, duck, mcfg.get("gain_db"), music_carve_setting(spec))
     else:
         mux_music(master, final, total, music, mstart)
     print(f"\nRENDER CANDIDATE: {final}  (~{total:.1f}s){'  music:'+os.path.basename(music) if music else '  (silent)'}")

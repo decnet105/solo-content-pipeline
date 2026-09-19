@@ -49,6 +49,19 @@ ffmpeg -version
 
 Each should print a version number. If any says "command not found," see [Troubleshooting](#troubleshooting).
 
+Then give Python its one required package (the conductor draws subtitles and cards with it). Homebrew's Python refuses global `pip install`s, so use a small virtual environment inside the project (the `.gitignore` already skips it):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate      # run this again in any new Terminal window before using the pipeline
+pip install pillow
+```
+
+Optional extras — only if you use the features in [docs/09](09-number-cards-voice-mix-word-timing.md):
+
+- `pip install numpy scipy soundfile` — lets `scripts/measure_voice_band.py` measure how clearly the narration sits over the music.
+- `pip install openai-whisper stable-ts` — lets a number card lock in on a spoken word (`at_word`). Without it the pipeline still renders and just uses the normal timing.
+
 ---
 
 ## Step 2 · Get the project onto your Mac
