@@ -12,9 +12,11 @@ This skill governs the visual compositing pipeline for all TokyoFlow Japanese vi
 
 ### 1. Fresh Image Generation & Absolute Non-Reuse Discipline
 When producing any long-form episode, masterclass, or short:
-1. Every release package and scenario MUST feature brand-new, freshly generated or newly shot authentic Tokyo photographs.
+1. Every release package and scenario MUST feature brand-new, freshly generated or newly shot authentic high-resolution Tokyo photographs.
 2. Strictly PROHIBITED: Hardcoding or falling back to historical static scene images (e.g. recycling `scene_yamanote_platform.jpg`, `scene_tokyo_skyline.jpg` across releases).
-3. If fresh photos are needed, invoke high-resolution photorealistic asset generation (e.g. `generate_image`) with specific real-world Tokyo scene prompts (such as modern Tokyo sunny classroom, library, study cafe, Omotesando, Roppongi, Shinjuku) and store them under the active package or dedicated release asset directory.
+3. **Generation Cascade (Google Image -> fal.ai)**:
+   - Primary: Use Google Image generation to acquire photorealistic, crisp scene backgrounds matching the topic (modern Tokyo sunny classroom, library, study cafe, Omotesando, Roppongi, Shinjuku).
+   - Fallback: When Google Image usage/quota is exhausted or rate-limited, automatically fallback to `fal.ai` (`fal-ai/recraft-v3`, `fal-ai/flux`, `fal-ai/ideogram/v2`) to synthesize actual 4K/8K photorealistic large scenes without interrupting the pipeline.
 4. Check for episode-specific authentic photo `news_bg.jpg` in `docs/youtube_releases/{package_id}/`.
 5. NEVER initialize a blank solid canvas `Image.new("RGB", (w, h), color)` without compositing an authentic photorealistic base image.
 
