@@ -147,6 +147,7 @@ without copying anything that's specific to this kit.
 - [07 · Tearing down a competitor's video](docs/07-competitor-video-teardown.md) — how to run the teardown tool, work the eleven dimensions, and turn "here's what they did" into an adopt/skip decision that actually updates your own production practice.
 - [08 · Explaining an idea with a stick figure](docs/08-stickman-explainer.md) — when to reach for a generated explainer instead of footage, why the generation prompts carry no dialogue or music, and how to design your own character instead of borrowing one.
 - [09 · Number cards, a voice-first music mix, and word-anchored timing](docs/09-number-cards-voice-mix-word-timing.md) — the split-flap number card, carving the music out of the narrator's voice band (with a tool to measure it), and landing an effect on a spoken word — each with the numbers from real renders, plus the learn-it-natively-then-measure-it method behind all three.
+- [10 · Complete video production skills, pipelines, and channel growth playbook](docs/10-complete-video-production-skills-and-channel-playbook.md) — the master playbook unifying real-world production lessons from TokyoFlow, Mystory, Micro-Forensics (MF), The Rustbelt Wire (TRB), and AI Classroom Copilot. Covers the 10-stage end-to-end pipeline, the 10 mandatory skills (karaoke follow-along, authentic scene backgrounds, strict voice separation, UMS 99-point QC gate), zero-emoji policy, and channel launching/matrix operations.
 
 ## How it was built (teaser)
 
