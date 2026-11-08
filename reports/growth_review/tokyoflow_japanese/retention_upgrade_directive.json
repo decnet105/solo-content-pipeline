@@ -1,0 +1,48 @@
+{
+  "channel_id": "tokyoflow_japanese",
+  "target_episode": "EP21",
+  "generated_at": "2026-11-08T16:58:28.853562+00:00",
+  "target_score_goal": 95.0,
+  "directives": {
+    "cold_open_hook_0_30s": {
+      "action": "ABSOLUTE_ZERO_GREETING_RULE",
+      "instruction": "Cut all host greetings. At 0.0s, cut directly into situational crisis or dramatic dialogue contrast.",
+      "cognitive_gap": "Contrast real Tokyo native phrasing with textbook awkwardness within 15 words.",
+      "first_cut_timing_sec": 1.2
+    },
+    "visual_dynamics_engine": {
+      "max_static_ratio": 0.65,
+      "min_first_30s_visual_changes": 5,
+      "max_avg_shot_length_sec": 3.5,
+      "ken_burns_enabled": true,
+      "karaoke_highlight_glow": true
+    },
+    "information_cadence": {
+      "target_wpm": 145,
+      "micro_pause_sec": 0.35,
+      "monolingual_tts_chunking": true,
+      "voice_separation_discipline": "Nanami_JP_Only; Andrew_EN_Only"
+    },
+    "sound_engineering": {
+      "voice_band_carve_db": -12.0,
+      "loudness_target_lufs": -16.0,
+      "sub_bass_transient_hz": 42
+    },
+    "packaging_mobile_shield": {
+      "max_words": 6,
+      "min_legibility_score": 0.6,
+      "distinct_multilingual_layout": true,
+      "dhash_min_hamming_distance": 12
+    },
+    "asset_retention_loop": {
+      "companion_pdf_drive_pinned": true,
+      "outro_passcode_gate": true,
+      "related_video_card": true
+    }
+  },
+  "qc_gate_enforcement": {
+    "min_passing_score": 99.0,
+    "auto_repair_enabled": true,
+    "fail_closed_policy": "STRICT_BLOCK_UPLOAD"
+  }
+}

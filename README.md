@@ -69,9 +69,12 @@ When it finishes you'll have a rendered vertical-short candidate in `output/`. O
 - `scripts/word_anchor.py` — optional: finds when a chosen word is spoken in a narration clip (Whisper + stable-ts + pause snapping), so a card can lock in exactly on that word.
 - `scripts/measure_voice_band.py` — optional: measures how many dB the narration sits above the music in the speech band, for flat ducking vs the voice-carve mix.
 - `scripts/deconstruct_video.py` — fetches a competitor or reference video (URL or local file) and produces dense frame samples, a contact sheet, and a timestamped manifest for a teardown.
+- `scripts/competitor_closed_loop_engine.py` — daily competitor scanning, 6-dimension outlier reverse-engineering, video-to-video gap delta scoring, and automatic retention upgrade directive generation.
 - `examples/example-spec.json` — a complete, runnable spec you can copy and edit.
 - `examples/prompts/example-t2v.txt` — a director-style prompt for a text-to-video shot.
 - `skills/video-pipeline/SKILL.md` — how to drive the video pipeline.
+- `skills/competitor-reverse-engineering/SKILL.md` — daily outlier scanning, multidimensional gap analysis, and automated retention upgrade directives.
+- `skills/tokyoflow-qc-gate/SKILL.md` — 12-checkpoint automated QC gate & self-healing auto-repair engine (static ratio <= 0.70, mobile legibility >= 0.55).
 - `skills/video-pipeline/references/ai-motion-production.md` — the fail-closed contract for real generated motion, paid-task recovery, reference roles and exact-output review.
 - `skills/video-run-control/SKILL.md` — end-to-end artifact lineage, picture lock, finishing receipts, invalidation, and the final human hash gate.
 - `skills/video-run-control/references/run-manifest-contract.md` — the generic run-manifest contract behind that control skill.
@@ -148,6 +151,7 @@ without copying anything that's specific to this kit.
 - [08 · Explaining an idea with a stick figure](docs/08-stickman-explainer.md) — when to reach for a generated explainer instead of footage, why the generation prompts carry no dialogue or music, and how to design your own character instead of borrowing one.
 - [09 · Number cards, a voice-first music mix, and word-anchored timing](docs/09-number-cards-voice-mix-word-timing.md) — the split-flap number card, carving the music out of the narrator's voice band (with a tool to measure it), and landing an effect on a spoken word — each with the numbers from real renders, plus the learn-it-natively-then-measure-it method behind all three.
 - [10 · Complete video production skills, pipelines, and channel growth playbook](docs/10-complete-video-production-skills-and-channel-playbook.md) — the master playbook unifying real-world production lessons from TokyoFlow, Mystory, Micro-Forensics (MF), The Rustbelt Wire (TRB), and AI Classroom Copilot. Covers the 10-stage end-to-end pipeline, the 10 mandatory skills (karaoke follow-along, authentic scene backgrounds, strict voice separation, UMS 99-point QC gate), zero-emoji policy, and channel launching/matrix operations.
+- [11 · Autonomous competitor closed-loop pipeline](docs/11-autonomous-competitor-closed-loop-pipeline.md) — full-stack autonomous closed-loop operation playbook: daily top 3 competitor scanning, 6-dimension reverse-engineering, gap attribution, automatic skill/memory/QC/code updates, and self-healing pre-upload gate.
 
 ## How it was built (teaser)
 
@@ -171,3 +175,4 @@ MIT — see [LICENSE](LICENSE). Use it, fork it, ship your own.
 - 新增**火柴人/极简动画解说**技能：当某段内容是在讲道理（机制/逻辑/类比）而不是给证据、又找不到贴题素材时，用它产出导演预案+六条纯视觉生成 prompt——旁白和配乐完全不写进生成 prompt（多数 t2v 模型根本不认台词），照旧走这套管线自己的逐镜配音；角色只能是中性讲解者，不能拿去扮演真实人物本人。见 [skills/stickman-explainer](skills/stickman-explainer/SKILL.md) 与 [docs/08](docs/08-stickman-explainer.md)。
 - 新增三项**做了就量、量了才当缺省**的小升级（见 [docs/09](docs/09-number-cards-voice-mix-word-timing.md)）：①数字卡默认走**机械翻页**（`number_card` 字段，本地 PIL 画、零 API 成本，数字永远精确落定，不会停在半翻状态）；②配乐默认**避开人声频段**（把 BGM 分低/中/高三段，只把 500Hz–3kHz 人声段对着旁白深压，`music.carve`，`false` 可退回旧混法且音频逐字节一致；附 `measure_voice_band.py` 量“旁白比配乐高多少 dB”）；③可选的**按词锚定**（`number_card.at_word`，让数字在旁白念到某个词的瞬间落定；40 条真实旁白上词起点误差中位数 22ms，缺工具时自动回落，不中断出片）。这三项的共同思路：读别人的项目只学技法、在自家管线里原生重做、用自己的真实文件量数字、先做成可选、人听过看过才升缺省。
 - 核心不是会写代码，而是**把想要的效果讲清楚 + 有审美 + 肯迭代**。完整故事见 [docs/04](docs/04-how-this-was-built.md)。
+- **全自动闭环自洽运营体系 (Closed-Loop Pipeline)**：新增每日扫描赛道 Top 3 爆发竞品并按 6 维逆向打分对比，自动量化画面静止率（`static_ratio`）、移动端封面穿透力（168x94 像素辨识度）与黄金 3 秒钩子差距，全自动生成下期超越指令并更新 Skill、Memory、QC 与渲染代码，见 [docs/11](docs/11-autonomous-competitor-closed-loop-pipeline.md) 与 `scripts/competitor_closed_loop_engine.py`。
